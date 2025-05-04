@@ -1,8 +1,9 @@
-# React + Vite
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+# React chess app
 
-Currently, two official plugins are available:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Chess Web Programming: Part One: Getting Started
+https://lichess.org/@/HollowLeaf/blog/chess-web-programming-part-one-getting-started/8ZKpwJU8
+
+- Chess Web Programming: Part Two: Stockfish
+https://lichess.org/@/HollowLeaf/blog/chess-web-programming-part-two-stockfish/PdeOTODf

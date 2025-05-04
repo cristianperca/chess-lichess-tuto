@@ -1,86 +1,110 @@
-import React, { useState, useEffect } from "react";  // Import React and hooks for state and effect management
-import { Chessboard } from "react-chessboard";       // Import the Chessboard component for displaying the board
-import { Chess } from "chess.js";                    // Import Chess logic from chess.js to handle moves and rules
+import React, { useState, useEffect } from "react";
+import { Chessboard } from "react-chessboard";
+import { Chess } from "chess.js";
+//import stockfish from 'https://cdn.jsdelivr.net/npm/stockfish@16.0.0/+esm'
+
+// Function to extract best move and evaluation from Stockfish's message
+const getEvaluation = (message, turn) => {
+  let result = { bestMove: "", evaluation: "" }; // Initialize with default values
+
+  // Check for "bestmove" in the message to get the best move
+  if (message.startsWith("bestmove")) {
+    result.bestMove = message.split(" ")[1];
+  }
+
+  // Check for "info score" message to get the evaluation
+  if (message.includes("info") && message.includes("score")) {
+    const scoreParts = message.split(" ");
+    const scoreIndex = scoreParts.indexOf("score") + 2; // "cp" or "mate" is two words after "score"
+
+    if (scoreParts[scoreIndex - 1] === "cp") {
+      // Extract centipawn evaluation and adjust based on turn
+      let score = parseInt(scoreParts[scoreIndex], 10);
+      if (turn !== "b") {
+        score = -score; // Invert score if it was Black's turn
+      }
+      result.evaluation = `${score / 100}`; // Convert centipawns to pawns
+
+    } else if (scoreParts[scoreIndex - 1] === "mate") {
+      // Extract mate score if available
+      const mateIn = parseInt(scoreParts[scoreIndex], 10);
+      result.evaluation = `Mate in ${Math.abs(mateIn)}`;
+    }
+  }
+
+  return result;
+};
 
 const App = () => {
-  // Initialize game state with a new Chess instance from chess.js
   const [game, setGame] = useState(new Chess());
-  // Initialize state for the Stockfish Web Worker instance
   const [stockfish, setStockfish] = useState(null);
-  // Initialize state for storing Stockfish's suggested best move
   const [bestMove, setBestMove] = useState("");
+  const [evaluation, setEvaluation] = useState(""); // State to store Stockfish's evaluation
 
-  // useEffect to set up Stockfish as a Web Worker when the component first loads (mounts)
   useEffect(() => {
-    // Create a new Web Worker for Stockfish from the JavaScript file we downloaded
-    const stockfishWorker = new Worker("/js/stockfish-16.1-lite-single.js");
-    setStockfish(stockfishWorker); // Save this worker instance in state for access elsewhere in the component
+    // Load Stockfish as a Web Worker once when the component mounts
+    //const stockfishWorker = new Worker("/js/stockfish-16.1-lite-single.js");
+    const stockfishWorker = new Worker(`${import.meta.env.PUBLIC_URL}js/stockfish-16.1-lite-single.js`);
 
-    // Listen for messages sent back from Stockfish
-    stockfishWorker.onmessage = (event) => {
-      const message = event.data; // Capture the message data from Stockfish
-      // Check if Stockfish has sent a "bestmove" response
-      if (message.startsWith("bestmove")) {
-        const move = message.split(" ")[1]; // Extract the best move from the message
-        setBestMove(move); // Save the best move in state to display on the screen
-      }
-    };
-
-    // Clean up the worker when the component is removed from the screen (unmounted)
+    setStockfish(stockfishWorker);
     return () => {
-      stockfishWorker.terminate(); // Terminates the worker to free up resources
+      stockfishWorker.terminate(); // Clean up the worker when the component unmounts
     };
-  }, []); // Empty dependency array means this runs only once when the component mounts
+  }, []);
 
-  // onDrop function is triggered when a piece is moved on the Chessboard
   const onDrop = (sourceSquare, targetSquare) => {
-    // Create a copy of the current game state using FEN (Forsyth-Edwards Notation)
     const gameCopy = new Chess(game.fen());
 
     try {
-      // Attempt to make the move on the game copy
       const move = gameCopy.move({
-        from: sourceSquare,   // Source square of the piece being moved
-        to: targetSquare,     // Target square of the move
-        promotion: "q",       // Always promote to a queen for simplicity
+        from: sourceSquare,
+        to: targetSquare,
+        promotion: "q", // Always promote to a queen for simplicity
       });
 
-      // If the move is invalid, return false to prevent it from being applied
       if (move === null) {
-        return false; // Invalid move, ignore it
+        return false; // Invalid move
       }
 
-      // If the move is valid, update the main game state with the new position
       setGame(gameCopy);
 
-      // Send the new position to Stockfish for analysis
+      console.log(import.meta.env)
+      console.log(import.meta.env.PUBLIC_URL)
+
+      // Send the updated position to Stockfish to calculate the best move and evaluation
       if (stockfish) {
-        stockfish.postMessage(`position fen ${gameCopy.fen()}`); // Send the board position in FEN format
-        stockfish.postMessage("go depth 15"); // Instruct Stockfish to analyze the position up to a depth of 15 moves
+        stockfish.postMessage(`position fen ${gameCopy.fen()}`);
+        stockfish.postMessage("go depth 15"); // Set depth for Stockfish analysis
+
+        // Listen for Stockfish messages and update best move and evaluation
+        stockfish.onmessage = (event) => {
+          const { bestMove, evaluation } = getEvaluation(event.data, game.turn());
+          if (bestMove) setBestMove(bestMove);
+          if (evaluation) setEvaluation(evaluation);
+        };
       }
 
-      return true; // Move was valid and applied, so return true
+      return true; // Valid move
     } catch (error) {
-      console.error(error.message); // Log any errors
-      return false; // Return false to ignore the move if there was an error
+      console.error(error.message);
+      return false; // Catch any error and return false
     }
   };
 
-  // Render the component
   return (
     <div>
       <h1>Chess Game with Stockfish</h1>
       <Chessboard
-        position={game.fen()}         // Set the board position based on the current game state
-        onPieceDrop={onDrop}          // Attach the onDrop function to handle piece moves
-        boardWidth={500}              // Set the width of the chessboard to 500 pixels
+        position={game.fen()}
+        onPieceDrop={onDrop}
+        boardWidth={500} // Set the board width to 500px
       />
       <div>
-        {/* Display Stockfish's suggested best move or show "Calculating..." if no move is available yet */}
         <h3>Best Move: {bestMove || "Calculating..."}</h3>
+        <h3>Evaluation: {evaluation || "Evaluating..."}</h3>
       </div>
     </div>
   );
 };
 
-export default App; // Export the App component for use in other parts of the application
+export default App;
