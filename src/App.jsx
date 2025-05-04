@@ -43,8 +43,8 @@ const App = () => {
 
   useEffect(() => {
     // Load Stockfish as a Web Worker once when the component mounts
-    const stockfishWorker = new Worker("/js/stockfish-16.1-lite-single.js");
-    //const stockfishWorker = new Worker(`${import.meta.env.PUBLIC_URL}js/stockfish-16.1-lite-single.js`);
+    // Use import.meta.env.BASE_URL to ensure the path is correct in development and production
+    const stockfishWorker = new Worker(`${import.meta.env.BASE_URL}js/stockfish-16.1-lite-single.js`);
 
     setStockfish(stockfishWorker);
     return () => {
@@ -67,9 +67,6 @@ const App = () => {
       }
 
       setGame(gameCopy);
-
-      console.log(import.meta.env)
-      console.log(import.meta.env.PUBLIC_URL)
 
       // Send the updated position to Stockfish to calculate the best move and evaluation
       if (stockfish) {
