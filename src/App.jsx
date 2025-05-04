@@ -43,8 +43,8 @@ const App = () => {
 
   useEffect(() => {
     // Load Stockfish as a Web Worker once when the component mounts
-    //const stockfishWorker = new Worker("/js/stockfish-16.1-lite-single.js");
-    const stockfishWorker = new Worker(`${import.meta.env.PUBLIC_URL}js/stockfish-16.1-lite-single.js`);
+    const stockfishWorker = new Worker("/js/stockfish-16.1-lite-single.js");
+    //const stockfishWorker = new Worker(`${import.meta.env.PUBLIC_URL}js/stockfish-16.1-lite-single.js`);
 
     setStockfish(stockfishWorker);
     return () => {
