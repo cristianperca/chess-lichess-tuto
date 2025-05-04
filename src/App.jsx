@@ -46,6 +46,11 @@ const App = () => {
   // State variables for tracking the last move's from and to squares
   const [fromSquare, setFromSquare] = useState(null); // Holds the starting square of the last move
   const [toSquare, setToSquare] = useState(null);     // Holds the destination square of the last move
+  // State to hold the best move's starting and ending squares for the arrow
+  const [bestMoveArrow, setBestMoveArrow] = useState([]);
+
+  const arrowColor = "rgba(0, 0, 255, 0.6)"; // Custom arrow color
+
 
   useEffect(() => {
     // Load Stockfish as a Web Worker once when the component mounts
@@ -86,7 +91,12 @@ const App = () => {
         // Listen for Stockfish messages and update best move and evaluation
         stockfish.onmessage = (event) => {
           const { bestMove, evaluation } = getEvaluation(event.data, game.turn());
-          if (bestMove) setBestMove(bestMove);
+
+          if (bestMove) {
+            setBestMove(bestMove);
+            setBestMoveArrow([[bestMove.slice(0, 2), bestMove.slice(2, 4)]]); // Set arrow for best move
+          }
+
           if (evaluation) setEvaluation(evaluation);
         };
       }
@@ -118,6 +128,8 @@ const App = () => {
         onPieceDrop={onDrop}
         boardWidth={500} // Set the board width to 500px
         customSquareStyles={getSquareStyles()} // Apply last move highlight styles
+        customArrows={bestMoveArrow} // Pass the best move arrow to render on the board
+        customArrowColor={arrowColor} // Set the custom arrow color
       />
       <div>
         <h3>Best Move: {bestMove || "Calculating..."}</h3>
