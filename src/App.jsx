@@ -6,6 +6,7 @@ import { Chess } from "chess.js";
 // Function to extract best move and evaluation from Stockfish's message
 const getEvaluation = (message, turn) => {
   let result = { bestMove: "", evaluation: "" }; // Initialize with default values
+  console.log("Stockfish message:", message); // Log the message for debugging
 
   // Check for "bestmove" in the message to get the best move
   if (message.startsWith("bestmove")) {
@@ -16,6 +17,8 @@ const getEvaluation = (message, turn) => {
   if (message.includes("info") && message.includes("score")) {
     const scoreParts = message.split(" ");
     const scoreIndex = scoreParts.indexOf("score") + 2; // "cp" or "mate" is two words after "score"
+    console.log("Score parts:", scoreParts); // Log the score parts for debugging
+    console.log("Score index:", scoreIndex); // Log the score index for debugging
 
     if (scoreParts[scoreIndex - 1] === "cp") {
       // Extract centipawn evaluation and adjust based on turn
@@ -40,6 +43,9 @@ const App = () => {
   const [stockfish, setStockfish] = useState(null);
   const [bestMove, setBestMove] = useState("");
   const [evaluation, setEvaluation] = useState(""); // State to store Stockfish's evaluation
+  // State variables for tracking the last move's from and to squares
+  const [fromSquare, setFromSquare] = useState(null); // Holds the starting square of the last move
+  const [toSquare, setToSquare] = useState(null);     // Holds the destination square of the last move
 
   useEffect(() => {
     // Load Stockfish as a Web Worker once when the component mounts
@@ -53,7 +59,7 @@ const App = () => {
   }, []);
 
   const onDrop = (sourceSquare, targetSquare) => {
-    const gameCopy = new Chess(game.fen());
+    const gameCopy = new Chess(game.fen()); // Clone the current game state
 
     try {
       const move = gameCopy.move({
@@ -67,6 +73,10 @@ const App = () => {
       }
 
       setGame(gameCopy);
+
+      // Update last move states for highlighting
+      setFromSquare(sourceSquare); // Update the starting square of the last move
+      setToSquare(targetSquare);   // Update the destination square of the last move
 
       // Send the updated position to Stockfish to calculate the best move and evaluation
       if (stockfish) {
@@ -88,6 +98,18 @@ const App = () => {
     }
   };
 
+  const getSquareStyles = () => {
+    const styles = {}; // Initialize an empty object for square styles
+    if (fromSquare) {
+      styles[fromSquare] = { backgroundColor: "rgba(173, 216, 230, 0.8)" }; // Light blue for the from-square
+    }
+    if (toSquare) {
+      styles[toSquare] = { backgroundColor: "rgba(144, 238, 144, 0.8)" }; // Light green for the to-square
+    }
+    return styles; // Return the styles object
+  };
+
+
   return (
     <div>
       <h1>Chess Game with Stockfish</h1>
@@ -95,6 +117,7 @@ const App = () => {
         position={game.fen()}
         onPieceDrop={onDrop}
         boardWidth={500} // Set the board width to 500px
+        customSquareStyles={getSquareStyles()} // Apply last move highlight styles
       />
       <div>
         <h3>Best Move: {bestMove || "Calculating..."}</h3>
